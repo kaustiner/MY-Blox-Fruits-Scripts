@@ -11,14 +11,13 @@ gui.Name = "AutoFarmGUI"
 local button = Instance.new("TextButton", gui)
 button.Size = UDim2.new(0, 160, 0, 40)
 button.Position = UDim2.new(0, 20, 0, 20)
-button.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- 🔴 Vermelho vibrante
+button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Font = Enum.Font.GothamBold
 button.TextSize = 16
 button.Text = "Ativar Auto Farm"
 button.BorderSizePixel = 0
 
--- Borda arredondada
 local corner = Instance.new("UICorner", button)
 corner.CornerRadius = UDim.new(0, 10)
 
@@ -27,7 +26,6 @@ local farming = false
 local attackDelay = 0.15
 local lastAttack = 0
 
--- Posição do clique (centro da tela)
 local x = camera.ViewportSize.X / 2
 local y = camera.ViewportSize.Y / 2
 
@@ -43,23 +41,34 @@ local function findTarget()
             end
         end
     end
-    return closest
+    return closest, dist
 end
 
--- Função de ataque com teleporte + pose fixa + clique físico
+-- Função de teleporte suave
+local function smoothTeleport(targetPos)
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local currentPos = hrp.Position
+    local direction = (targetPos - currentPos).Unit
+    local stepSize = 15 -- 🔁 distância por teleporte curto
+
+    local distance = (targetPos - currentPos).Magnitude
+    if distance > stepSize then
+        hrp.CFrame = CFrame.new(currentPos + direction * stepSize)
+    else
+        hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
+    end
+end
+
+-- Função de ataque
 local function attack()
     if tick() - lastAttack < attackDelay then return end
     lastAttack = tick()
 
-    local target = findTarget()
+    local target, dist = findTarget()
     if target and target:FindFirstChild("HumanoidRootPart") then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if hrp and humanoid then
-            -- Pose fixa: barriga pra baixo
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-            hrp.CFrame = CFrame.new(target.HumanoidRootPart.Position + Vector3.new(0, 5, 0)) * CFrame.Angles(math.rad(90), 0, 0)
-        end
+        smoothTeleport(target.HumanoidRootPart.Position)
 
         vim:SendMouseButtonEvent(x, y, 0, true, game, 0)
         task.wait(0.01)
